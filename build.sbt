@@ -42,7 +42,24 @@ lazy val root = project.in(file(".")).
 
 lazy val protobufRuntimeScala = crossProject.crossType(CrossType.Pure).in(file("."))
   .settings(
-    name := "protobuf-runtime-scala"
+    name := "protobuf-runtime-scala",
+    TaskKey[Unit]("compatibilityTest") := {
+      import java.util.jar.JarFile
+      import scala.collection.JavaConverters._
+      import java.io.File
+      val clazz = ".class"
+      val jar = (packageBin in Compile).value
+      println(jar)
+      val classes = new JarFile(jar).entries.asScala.filter{ s =>
+        ( s.isDirectory == false ) && {
+          val n = s.toString
+          n.endsWith(clazz) &&
+          n.dropRight(clazz.length + 1).contains("$") == false
+        }
+      }.map{
+        s => s.toString.dropRight(clazz.length).replace('/','.')
+      }.toList
+    }
   )
   .jvmSettings(
     // Add JVM-specific settings here
